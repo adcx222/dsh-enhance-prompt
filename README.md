@@ -34,11 +34,12 @@
 
 ## 特性
 
-- **工具栏一键触发**：纯图标按钮（28×28），挂在输入框工具栏麦克风左侧，不占额外空间
+- **工具栏一键触发**：纯图标按钮（28×28），挂在输入框工具栏发送按钮左侧，不占额外空间
 - **单轮、无工具**：走 `ctx.llm.stream()`，`tools` 天然为空，安全边界由 API 本身保证
 - **不污染历史**：不建会话、不写对话记录，只是一次文本改写
 - **跟随语言**：中文进中文出，英文进英文出，不做语言标签
-- **写回有兜底**：`execCommand('insertText')` → 派发 `input` 事件 → 复制到剪贴板，逐级降级
+- **写回走官方入口**：优先用 composer 的 `inputActions.setDraft`（Lexical 编辑器）；拿不到时退回编辑命令，再失败复制到剪贴板，不直接改 `contenteditable`
+- **不覆盖新输入**：请求期间草稿有改动时只复制结果，不覆盖你刚输入的内容或文件引用
 - **消耗可见**：右键按钮看累计输入/输出 token、调用次数、失败次数
 - **模型可配**：默认跟随当前会话的模型选择，也可以在配置里写死
 
@@ -74,7 +75,7 @@ DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安
       config:
         provider: ''
         model: ''
-        maxTokens: 2048
+        maxTokens: 8192
         timeoutMs: 60000
         maxInputChars: 5000
 ```
@@ -83,7 +84,7 @@ DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安
 |---|---|---|
 | `provider` | 空 | 模型 provider；留空则跟随当前会话的模型选择 |
 | `model` | 空 | 模型名；留空同上 |
-| `maxTokens` | `2048` | 单次改写输出上限 |
+| `maxTokens` | `8192` | 单次改写输出上限；推理型模型的思考过程也占输出额度，太小会拿不到正文 |
 | `timeoutMs` | `60000` | 请求超时 |
 | `maxInputChars` | `5000` | 草稿长度上限，超过直接拒绝，不浪费一次调用 |
 
@@ -94,11 +95,11 @@ DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安
 ```
 浏览器端 lib/client.js                宿主端 lib/index.js
 ─────────────────────                ────────────────────
-MutationObserver 找输入框
+MutationObserver 找 composer
    ↓
 在工具栏插入 ✨ 按钮
    ↓  点击
-读 editor.innerText
+读草稿（composer projection，含 @ 文件引用）
    ↓
 POST /enhance-prompt  ───────────────▶  校验长度 / 解析 provider+model
 { text }                                    ↓
@@ -109,10 +110,10 @@ POST /enhance-prompt  ───────────────▶  校验�
                                        记 token 账 → stats.json
    ◀──────────────────────────────────  { success, text, tokens }
    ↓
-写回输入框（三级降级）
+inputActions.setDraft 写回（Lexical）
 ```
 
-宿主端注册的是 `webServer` 上的精确路由 `POST /enhance-prompt`，同时 `GET` 返回累计统计。
+宿主端注册的是 `webServer` 上的精确路由 `POST /enhance-prompt`，同时 `GET` 返回累计统计。路由通过 `ctx.effect` 跟随插件生命周期注册/释放，live reload 时会等旧路由释放后再重试注册，避免 `duplicate exact route` 把接口卡死。
 
 ## 提示词设计
 
@@ -130,8 +131,9 @@ POST /enhance-prompt  ───────────────▶  校验�
 
 ## 已知限制
 
-- **DOM 注入**：按钮靠 `[contenteditable="true"]` 和工具栏按钮的相对位置定位。上游改版可能让选择器失配，届时按钮不出现（不会报错）。
-- **写回依赖 `execCommand`**：这个 API 已废弃但仍是目前唯一能可靠触发 React 受控输入更新的路径；失败时降级到事件派发，再失败复制到剪贴板并提示。
+- **DOM 注入**：按钮靠 composer 结构定位（编辑器 + 发送按钮 + file input）。上游改版可能让选择器失配，届时按钮不出现（不会报错）；分栏/多会话时每个 composer 各挂一个。
+- **写回优先走官方 InputActions**：`inputActions.setDraft` 是 Lexical 的整段替换入口；拿不到该服务时才退回 `execCommand('selectAll')`，不再直接写 `textContent`，避免编辑器状态与 DOM 脱节导致输入框/文件引用异常。
+- **增强期间不覆盖新输入**：请求进行中如果你继续打字或加文件，结果只复制到剪贴板，不覆盖当前草稿。
 - **统计是本地文件**：`stats.json` 写在插件目录下，不参与云端计量，口径只覆盖本插件的增强调用。
 - **一次一段**：只处理输入框当前草稿，不处理选中片段。
 

@@ -12,6 +12,6 @@
       config:
         provider: ''
         model: ''
-        maxTokens: 2048
+        maxTokens: 8192
         timeoutMs: 60000
         maxInputChars: 5000
