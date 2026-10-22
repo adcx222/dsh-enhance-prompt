@@ -3,6 +3,8 @@
 给 [DSH（DeepSeek Harness）](https://github.com/deepseek-ai) 输入框加一个 ✨ 按钮：把随手写的草稿，一键改写成结构清晰、约束明确的提示词。
 
 > DSH Desktop / dsh web 的插件，`dsh.bundle` 形态，可直接用 `dsh plugin add` 或插件市场安装。
+>
+> 兼容 DSH `>=0.2.0-rc.2 <0.3.0`。
 
 ---
 
@@ -48,6 +50,14 @@
 ### 通过插件市场
 
 DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安装。
+
+### 命令行安装（直接从 GitHub）
+
+市场收录之前，或者想跟 `main` 分支上的最新代码，可以直接用 GitHub 源安装：
+
+```sh
+dsh plugin --profile web add github:adcx222/dsh-enhance-prompt
+```
 
 ### 手动安装
 
