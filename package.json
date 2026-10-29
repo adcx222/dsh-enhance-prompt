@@ -1,5 +1,5 @@
 {
-  "name": "dsh-enhance-prompt",
+  "name": "@adcx222/dsh-enhance-prompt",
   "version": "0.1.0",
   "description": "DSH 输入框提示词增强：把草稿改写成更清晰具体的指令",
   "type": "module",
@@ -10,9 +10,13 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib",
+    "lib/index.js",
+    "lib/client.js",
     "cordis.patch.yml"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": "adcx222",
   "keywords": [

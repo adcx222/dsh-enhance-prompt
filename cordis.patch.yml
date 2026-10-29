@@ -8,7 +8,7 @@
 #   model: deepseek-chat
 - insert:
     - id: enhance-prompt
-      name: 'dsh-enhance-prompt'
+      name: '@adcx222/dsh-enhance-prompt'
       config:
         provider: ''
         model: ''

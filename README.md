@@ -1,5 +1,9 @@
 # dsh-enhance-prompt
 
+[![npm](https://img.shields.io/npm/v/@adcx222%2Fdsh-enhance-prompt)](https://www.npmjs.com/package/@adcx222/dsh-enhance-prompt)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![dsh](https://img.shields.io/badge/dsh-0.2.0--rc.2%20–%200.3.0-2ea44f)](https://github.com/deepseek-ai)
+
 给 [DSH（DeepSeek Harness）](https://github.com/deepseek-ai) 输入框加一个 ✨ 按钮：把随手写的草稿，一键改写成结构清晰、约束明确的提示词。
 
 > DSH Desktop / dsh web 的插件，`dsh.bundle` 形态，可直接用 `dsh plugin add` 或插件市场安装。
@@ -50,6 +54,8 @@
 ### 通过插件市场
 
 DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安装。
+
+> npm 包名是 `@adcx222/dsh-enhance-prompt`，仓库名沿用 `dsh-enhance-prompt`，两者不同属正常。
 
 ### 命令行安装（直接从 GitHub）
 
@@ -146,6 +152,7 @@ inputActions.setDraft 写回（Lexical）
 - **增强期间不覆盖新输入**：请求进行中如果你继续打字或加文件，结果只复制到剪贴板，不覆盖当前草稿。
 - **统计是本地文件**：`stats.json` 写在插件目录下，不参与云端计量，口径只覆盖本插件的增强调用。
 - **一次一段**：只处理输入框当前草稿，不处理选中片段。
+- **数据流向**：点击按钮时，当前草稿内容会随这一次改写请求发送到你选择（或配置）的模型，和你在同一个会话里正常提问时的数据边界一致；插件本身不上传、不落盘草稿，只把 token 用量写进本地 `stats.json`。
 
 ## 开发
 
