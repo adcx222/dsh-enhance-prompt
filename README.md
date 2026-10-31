@@ -1,6 +1,6 @@
 # dsh-enhance-prompt
 
-[![npm](https://img.shields.io/npm/v/@adcx222%2Fdsh-enhance-prompt)](https://www.npmjs.com/package/@adcx222/dsh-enhance-prompt)
+[![npm](https://img.shields.io/npm/v/@geed239%2Fdsh-enhance-prompt)](https://www.npmjs.com/package/@geed239/dsh-enhance-prompt)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![dsh](https://img.shields.io/badge/dsh-0.2.0--rc.2%20–%200.3.0-2ea44f)](https://github.com/deepseek-ai)
 
@@ -40,7 +40,8 @@
 
 ## 特性
 
-- **工具栏一键触发**：纯图标按钮（28×28），挂在输入框工具栏发送按钮左侧，不占额外空间
+- **挂在官方槽位**：纯图标按钮（28×28）注册到宿主的 `conversation.input.right`，与麦克风同一行、模型选择器左侧，位置由宿主 flex 布局管理；窄屏时整行自动换行，不会盖住模型管理或发送按钮
+- **移动端可点**：视觉尺寸 28×28，命中区上下各扩 8px（28×44），不侵占左右邻居；`touch-action: manipulation` 去掉双击缩放延迟
 - **单轮、无工具**：走 `ctx.llm.stream()`，`tools` 天然为空，安全边界由 API 本身保证
 - **不污染历史**：不建会话、不写对话记录，只是一次文本改写
 - **跟随语言**：中文进中文出，英文进英文出，不做语言标签
@@ -48,6 +49,7 @@
 - **不覆盖新输入**：请求期间草稿有改动时只复制结果，不覆盖你刚输入的内容或文件引用
 - **消耗可见**：右键按钮看累计输入/输出 token、调用次数、失败次数
 - **模型可配**：默认跟随当前会话的模型选择，也可以在配置里写死
+- **DSH Go 原生界面也有入口**：带 `dshGo` 清单，在装了 dsh-go 桥接的主机上，App 原生聊天界面输入框上方的胶囊行会多一个「增强提示词」；点一下读当前草稿 → 增强 → 插回输入框（不发送）。网页版与原生界面两套入口互不影响
 
 ## 安装
 
@@ -55,7 +57,7 @@
 
 DSH 里打开 **设置 → 插件市场**，搜索 `dsh-enhance-prompt`，点安装。
 
-> npm 包名是 `@adcx222/dsh-enhance-prompt`，仓库名沿用 `dsh-enhance-prompt`，两者不同属正常。
+> npm 包名是 `@geed239/dsh-enhance-prompt`，仓库名沿用 `dsh-enhance-prompt`，两者不同属正常。
 
 ### 命令行安装（直接从 GitHub）
 
@@ -71,10 +73,10 @@ dsh plugin --profile web add github:adcx222/dsh-enhance-prompt
 2. 在 `profiles/web/package.json` 的 `dependencies` 里加：
 
    ```json
-   "dsh-enhance-prompt": "link:../../plugins/dsh-enhance-prompt"
+   "@geed239/dsh-enhance-prompt": "link:../../plugins/dsh-enhance-prompt"
    ```
 
-3. 在同一个文件的 `dsh.profile.bundles` 数组里加 `"dsh-enhance-prompt"`
+3. 在同一个文件的 `dsh.profile.bundles` 数组里加 `"@geed239/dsh-enhance-prompt"`
 4. 运行 `harness\.desktop-bin\pnpm.cmd install`
 5. 重启 DSH
 
@@ -87,7 +89,7 @@ dsh plugin --profile web add github:adcx222/dsh-enhance-prompt
 ```yaml
 - insert:
     - id: enhance-prompt
-      name: 'dsh-enhance-prompt'
+      name: '@geed239/dsh-enhance-prompt'
       config:
         provider: ''
         model: ''
@@ -111,9 +113,8 @@ dsh plugin --profile web add github:adcx222/dsh-enhance-prompt
 ```
 浏览器端 lib/client.js                宿主端 lib/index.js
 ─────────────────────                ────────────────────
-MutationObserver 找 composer
-   ↓
-在工具栏插入 ✨ 按钮
+注册 slot conversation.input.right
+   ↓  （宿主渲染 ✨ 按钮，与模型选择器同排）
    ↓  点击
 读草稿（composer projection，含 @ 文件引用）
    ↓
@@ -128,6 +129,8 @@ POST /enhance-prompt  ───────────────▶  校验�
    ↓
 inputActions.setDraft 写回（Lexical）
 ```
+
+按钮优先走官方槽位 `conversation.input.right`（list 槽位，注册项带 `id: "enhance-prompt"`、`order: 10`）。只有在宿主没有 `slots` 服务、拿不到 `react`、或槽位注册抛错（老版本宿主）时，才在 1.5 秒后退回旧的 DOM 方案：找到 composer 卡片，在发送/停止按钮左侧 `insertAdjacentElement` 插一个按钮。两条路径共用同一套读草稿 / 请求 / 写回逻辑。
 
 宿主端注册的是 `webServer` 上的精确路由 `POST /enhance-prompt`，同时 `GET` 返回累计统计。路由通过 `ctx.effect` 跟随插件生命周期注册/释放，live reload 时会等旧路由释放后再重试注册，避免 `duplicate exact route` 把接口卡死。
 
@@ -147,7 +150,12 @@ inputActions.setDraft 写回（Lexical）
 
 ## 已知限制
 
-- **DOM 注入**：按钮靠 composer 结构定位（编辑器 + 发送按钮 + file input）。上游改版可能让选择器失配，届时按钮不出现（不会报错）；分栏/多会话时每个 composer 各挂一个。
+- **槽位优先，DOM 兜底**：正常情况按钮由宿主槽位渲染（`conversation.input.right`），位置随宿主布局走；只有老宿主没有 `slots` 服务时才退回 DOM 插入（依赖 composer 结构定位：编辑器 + 发送按钮 + file input），那时上游改版可能让选择器失配，按钮不出现（不会报错）。
+- **移动端布局**：窄屏（≤560px 容器）时宿主把整行工具栏折行，按钮随行移动，不会与模型管理、麦克风或发送按钮重叠；已用无头 Chrome 在 390×844 / 360×844 / 320×844（DSH Go 网页模式常见宽度）实测，命中测试 `elementFromPoint` 均命中按钮自身。
+- **DSH Go 原生界面**：插件的 `dshGo` 清单声明了一个 `composer.actions` 胶囊（id `enhance`，`wants: ["draft"]`），宿主端用 `ctx.inject(['dshGo'])` 注册处理。三条边界要知道：
+  - 只有**装了 dsh-go 桥接**的主机才有原生插槽。手机本机引擎自带桥接；SSH 主机目前装不了（dsh-go 官方文档写明「第二期」）；经 DSH Remote 中转不显示。
+  - 原生协议没有「整体替换输入框」的效果，只有 `insert`（插到光标处，最多 2000 字）。所以原生胶囊是**插入**增强结果，原草稿要你自己删；想要替换语义就用网页版的 ✨。
+  - 关掉这个胶囊：插件配置里 `nativeCapsule: false`（只影响原生界面，网页版不受影响）。
 - **写回优先走官方 InputActions**：`inputActions.setDraft` 是 Lexical 的整段替换入口；拿不到该服务时才退回 `execCommand('selectAll')`，不再直接写 `textContent`，避免编辑器状态与 DOM 脱节导致输入框/文件引用异常。
 - **增强期间不覆盖新输入**：请求进行中如果你继续打字或加文件，结果只复制到剪贴板，不覆盖当前草稿。
 - **统计是本地文件**：`stats.json` 写在插件目录下，不参与云端计量，口径只覆盖本插件的增强调用。
@@ -163,6 +171,16 @@ inputActions.setDraft 写回（Lexical）
 - `cordis.patch.yml` — bundle patch，注册插件条目
 
 改完重启 DSH 或等 HMR 重新组合即可。
+
+### 依赖边界（重要）
+
+`@deepseek-ai/*` 是 DSH 宿主自带的公共包，本插件只在 `peerDependencies` 里声明可接受范围，**不写进 `dependencies`，也不要在插件目录里 `npm install` 它们**：
+
+- 宿主的模块回退解析（`resources/host-module-fallback.mjs`）会在插件目录解析失败时，改用 DSH 安装目录里的同一份包。所以插件目录里**不应该**有 `node_modules`。
+- 一旦插件目录里出现自己的 `node_modules/@deepseek-ai/*`，Node 会优先用本地副本，同一进程里就有了两份 `dsh-llm` / `cordis` / `schemastery`。`cordis` 的 Context / Service 身份与宿主不一致时，服务注入会失效或行为异常；`dsh-llm` 的消息、chunk 类跨副本也可能出现身份校验问题。
+- 只写 `peerDependencies` 还有一个好处：插件永远跟随宿主的那一份版本，DSH 升级后不会出现插件跑旧版、宿主跑新版的分叉。
+
+需要 TypeScript 类型或本地调试时，把版本写进 `devDependencies` 并临时安装；调完请删掉 `node_modules`，不要让它留在运行目录里生效。
 
 ## License
 

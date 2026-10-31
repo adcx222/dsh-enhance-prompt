@@ -1,6 +1,6 @@
 {
-  "name": "@adcx222/dsh-enhance-prompt",
-  "version": "0.1.0",
+  "name": "@geed239/dsh-enhance-prompt",
+  "version": "0.2.0",
   "description": "DSH 输入框提示词增强：把草稿改写成更清晰具体的指令",
   "type": "module",
   "main": "lib/index.js",
@@ -54,9 +54,33 @@
       "platform": "web"
     }
   },
+  "dshGo": {
+    "v": 1,
+    "minApp": "1.0.4",
+    "title": {
+      "zh": "提示词增强",
+      "en": "Enhance prompt"
+    },
+    "icon": "sparkle",
+    "wants": [
+      "draft"
+    ],
+    "contributes": {
+      "composer.actions": [
+        {
+          "id": "enhance",
+          "label": {
+            "zh": "增强提示词",
+            "en": "Enhance"
+          },
+          "icon": "sparkle"
+        }
+      ]
+    }
+  },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/cordis": ">=4.0.1 <5",
     "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0",
-    "@deepseek-ai/schemastery": "~3.18.4"
+    "@deepseek-ai/schemastery": "^3.18.1"
   }
 }

@@ -1,6 +1,6 @@
 # dsh-enhance-prompt bundle patch
-# 宿主端（exports "."）注册 POST /enhance-prompt 路由；
-# 浏览器端（exports "./client"）在输入框 dock 挂「增强」按钮。
+# 宿主端（exports "."）注册 POST /enhance-prompt 路由，并给 dsh-go 原生界面
+# 提供「增强提示词」胶囊；浏览器端（exports "./client"）在输入框工具栏挂 ✨。
 #
 # provider / model 留空表示跟随当前会话的模型选择；只有在解析不出时
 # 才会用到这里的值。需要固定模型时再填，例如：
@@ -8,10 +8,13 @@
 #   model: deepseek-chat
 - insert:
     - id: enhance-prompt
-      name: '@adcx222/dsh-enhance-prompt'
+      name: '@geed239/dsh-enhance-prompt'
       config:
         provider: ''
         model: ''
         maxTokens: 8192
         timeoutMs: 60000
         maxInputChars: 5000
+        # dsh-go 原生界面的「增强提示词」胶囊（需要主机装有 dsh-go 桥接）；
+        # 关掉只影响原生胶囊，网页版 ✨ 按钮不受影响。
+        nativeCapsule: true
